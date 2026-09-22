@@ -3,3 +3,6 @@ export * from './Input';
 export * from './DatePicker';
 export * from './Dropdown';
 export * from './Checkbox';
+export * from './Toast';
+export * from './ConfirmModal';
+export * from './Pagination';

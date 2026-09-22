@@ -69,7 +69,7 @@ export const AuthPage: React.FC = () => {
       <div className="auth-card animate-fade-in">
         {/* Brand / Logo Header */}
         <div className="auth-header">
-          <h1 className="custom-title-h2">PigFarm Pro</h1>
+          <h1 className="custom-title-h2">PigFamily</h1>
           <p className="custom-subtitle">
             {mode === 'login' && 'Đăng nhập hệ thống quản lý trang trại heo nái.'}
             {mode === 'register' && 'Tạo tài khoản quản lý mới.'}

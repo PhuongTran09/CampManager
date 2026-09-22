@@ -1,18 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import type { Sow, BreedingRecord, FarrowingRecord } from '../types';
-import { Button, Input, DatePicker, Dropdown } from '../components/common';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { Sow, BreedingRecord, FarrowingRecord, PigletBatch } from '../types';
+import { Button, Input, DatePicker, Dropdown, Pagination } from '../components/common';
 import { formatDateVN } from '../utils';
+
+const PAGE_SIZE = 6;
 
 interface SowProfilePageProps {
   sows: Sow[];
   onAddSow: (newSow: Sow) => void;
   onUpdateSow: (updatedSow: Sow) => void;
+  onAddPigletBatch?: (newBatch: PigletBatch) => void;
 }
 
 export const SowProfilePage: React.FC<SowProfilePageProps> = ({
   sows,
   onAddSow,
-  onUpdateSow
+  onUpdateSow,
+  onAddPigletBatch
 }) => {
   const [selectedSow, setSelectedSow] = useState<Sow | null>(sows[0] || null);
   const [activeSubTab, setActiveSubTab] = useState<'info' | 'breeding' | 'farrowing' | 'vaccines'>('info');
@@ -29,7 +33,15 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
   const [showAddSowModal, setShowAddSowModal] = useState(false);
   const [showBreedingModal, setShowBreedingModal] = useState(false);
   const [showFarrowingModal, setShowFarrowingModal] = useState(false);
+  const [showVaccineModal, setShowVaccineModal] = useState(false);
   const [showSowListMenu, setShowSowListMenu] = useState(false);
+
+  // Vaccine Form State
+  const [newVaccineType, setNewVaccineType] = useState<'vaccine' | 'treatment'>('vaccine');
+  const [newVaccineName, setNewVaccineName] = useState('');
+  const [newVaccineDate, setNewVaccineDate] = useState('');
+  const [newVaccineDosage, setNewVaccineDosage] = useState('');
+  const [newVaccineNotes, setNewVaccineNotes] = useState('');
 
   // New Sow Form State
   const [rfidTag, setRfidTag] = useState('');
@@ -41,7 +53,6 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
   const [breedingDate, setBreedingDate] = useState('');
   const [method, setMethod] = useState<'artificial' | 'natural'>('artificial');
   const [boarCode, setBoarCode] = useState('');
-  const [technician, setTechnician] = useState('');
   const [timesCount] = useState('2');
 
   // Farrowing Form State
@@ -49,15 +60,26 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
   const [bornAlive, setBornAlive] = useState('12');
   const [stillborn, setStillborn] = useState('0');
   const [mummified, setMummified] = useState('0');
-  const [totalBornWeightKg, setTotalBornWeightKg] = useState('16.5');
 
-  // Cai sữa state
-  const [weanedCount, setWeanedCount] = useState('11');
-  const [weanedWeightKg] = useState('75');
+  // Risk Reason Edit Modal State
+  const [showRiskModal, setShowRiskModal] = useState(false);
+  const [editingFarrowId, setEditingFarrowId] = useState<string | null>(null);
+  const [maleCount, setMaleCount] = useState<string>('');
+  const [femaleCount, setFemaleCount] = useState<string>('');
+  const [riskReason, setRiskReason] = useState('');
+
+  // Sow Daily Note Edit Modal State
+  const [showSowNoteModal, setShowSowNoteModal] = useState(false);
+  const [noteDate, setNoteDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [noteTime, setNoteTime] = useState<string>(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+  const [sowNoteText, setSowNoteText] = useState('');
+  // Notification Modal State
+  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
 
 
   // Filter Search
   const [searchTerm, setSearchTerm] = useState('');
+  const [sowPage, setSowPage] = useState(1);
 
   const filteredSows = sows.filter(
     (s) =>
@@ -65,6 +87,14 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
       s.breed.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.penCode.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  useEffect(() => {
+    setSowPage(1);
+  }, [searchTerm]);
+
+  const paginatedSows = useMemo(() => {
+    return filteredSows.slice((sowPage - 1) * PAGE_SIZE, sowPage * PAGE_SIZE);
+  }, [filteredSows, sowPage]);
 
   // Auto calculate expected farrowing date (+114 days)
   const calculateExpectedDate = (dateStr: string) => {
@@ -124,7 +154,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
       breedingDate,
       method,
       boarCode: boarCode || 'DUC-99 (Duroc)',
-      technician: technician || 'KTV Trang Trại',
+      technician: 'KTV Trang Trại',
       timesCount: Number(timesCount) || 2,
       ultrasoundDay21: 'pending',
       ultrasoundDay60: 'pending',
@@ -143,6 +173,31 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
     setShowBreedingModal(false);
   };
 
+  // Đánh dấu không đậu thai (phối lại)
+  const handleMarkBreedingFailed = (breedingId: string) => {
+    if (!selectedSow) return;
+
+    const updatedHistory = selectedSow.breedingHistory.map((b) => {
+      if (b.id === breedingId) {
+        return {
+          ...b,
+          ultrasoundDay21: 'not_pregnant' as const,
+          status: 'failed' as const
+        };
+      }
+      return b;
+    });
+
+    const updatedSow: Sow = {
+      ...selectedSow,
+      status: 'waiting', // Trở về trạng thái chờ phối lại
+      breedingHistory: updatedHistory
+    };
+
+    onUpdateSow(updatedSow);
+    setSelectedSow(updatedSow);
+  };
+
   // Add Farrowing Record
   const handleAddFarrowing = (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +212,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
       bornAlive: Number(bornAlive) || 0,
       stillborn: Number(stillborn) || 0,
       mummified: Number(mummified) || 0,
-      totalBornWeightKg: Number(totalBornWeightKg) || 0
+      totalBornWeightKg: 0
     };
 
     const updatedSow: Sow = {
@@ -176,13 +231,17 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
   const handleWeanPigs = (farrowId: string) => {
     if (!selectedSow) return;
 
+    const todayDateStr = new Date().toISOString().split('T')[0];
+    let weanedRecord: FarrowingRecord | undefined;
+
     const updatedFarrowingHistory = selectedSow.farrowingHistory.map((f) => {
       if (f.id === farrowId) {
+        weanedRecord = f;
         return {
           ...f,
-          weanedCount: Number(weanedCount) || 10,
-          weanedWeightKg: Number(weanedWeightKg) || 70,
-          weanDate: new Date().toLocaleDateString('vi-VN')
+          weanedCount: f.bornAlive || 10,
+          weanedWeightKg: 70,
+          weanDate: todayDateStr
         };
       }
       return f;
@@ -196,16 +255,200 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
 
     onUpdateSow(updatedSow);
     setSelectedSow(updatedSow);
-    alert('Đã thực hiện cai sữa & tách đàn thành công! Heo mẹ đã được đưa về trạng thái "Chờ Phối Giống".');
+
+    // Tự động tạo lứa heo con đã tách mẹ sang bên Quản Lý Lứa Heo Con
+    if (onAddPigletBatch && weanedRecord) {
+      const male = weanedRecord.maleCount || Math.floor((weanedRecord.bornAlive || 10) / 2);
+      const female = weanedRecord.femaleCount || ((weanedRecord.bornAlive || 10) - male);
+
+      const newPigletBatch: PigletBatch = {
+        id: `pb-${Date.now()}`,
+        batchCode: `LUA-${selectedSow.rfidTag}-L${weanedRecord.parityNumber}`,
+        sowRfid: selectedSow.rfidTag,
+        sowName: selectedSow.name || `Nái Mẹ ${selectedSow.rfidTag}`,
+        birthDate: weanedRecord.farrowingDate,
+        totalCount: weanedRecord.bornAlive || 10,
+        maleCount: male,
+        femaleCount: female,
+        avgWeightKg: 7.0, // Trọng lượng trung bình lúc tách mẹ (~7kg)
+        penCode: 'CH-C1', // Chuồng cai sữa mặc định
+        weanDate: todayDateStr, // Ngày tách mẹ (lấy đồng bộ từ ngày cai sữa)
+        status: 'weaned', // Trạng thái: Đã Tách Mẹ
+        healthStatus: 'healthy',
+        notes: `Lứa đẻ thứ #${weanedRecord.parityNumber} của nái ${selectedSow.name || selectedSow.rfidTag}`
+      };
+      onAddPigletBatch(newPigletBatch);
+    }
+
+    setNotificationMsg(`Đã thực hiện tách mẹ thành công! Lứa heo con đã được chuyển sang Quản Lý Lứa Heo Con (Mã: LUA-${selectedSow.rfidTag}-L${weanedRecord?.parityNumber || 1}) và nái mẹ về trạng thái "Chờ Phối Giống".`);
   };
 
-  const getStatusBadge = (st: string) => {
+  // Mở modal cập nhật số con đực/cái & ghi chú
+  const handleOpenRiskModal = (farrowId: string, farrowRecord: FarrowingRecord) => {
+    setEditingFarrowId(farrowId);
+    setMaleCount(farrowRecord.maleCount !== undefined ? String(farrowRecord.maleCount) : '');
+    setFemaleCount(farrowRecord.femaleCount !== undefined ? String(farrowRecord.femaleCount) : '');
+    setRiskReason(farrowRecord.deathReasonSummary || '');
+    setShowRiskModal(true);
+  };
+
+  // Lưu thông tin chỉnh sửa lứa đẻ (số đực, cái, ghi chú)
+  const handleSaveRiskReason = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSow || !editingFarrowId) return;
+
+    const updatedFarrowingHistory = selectedSow.farrowingHistory.map((f) => {
+      if (f.id === editingFarrowId) {
+        return {
+          ...f,
+          maleCount: maleCount !== '' ? Number(maleCount) : undefined,
+          femaleCount: femaleCount !== '' ? Number(femaleCount) : undefined,
+          deathReasonSummary: riskReason
+        };
+      }
+      return f;
+    });
+
+    const updatedSow: Sow = {
+      ...selectedSow,
+      farrowingHistory: updatedFarrowingHistory
+    };
+
+    onUpdateSow(updatedSow);
+    setSelectedSow(updatedSow);
+    setShowRiskModal(false);
+    setEditingFarrowId(null);
+    setMaleCount('');
+    setFemaleCount('');
+    setRiskReason('');
+  };
+
+  // Thêm ghi chú nhật ký theo ngày & giờ cho nái
+  const handleSaveSowNote = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSow || !sowNoteText.trim()) return;
+
+    const newNote = {
+      id: `note-${Date.now()}`,
+      date: noteDate || new Date().toISOString().split('T')[0],
+      time: noteTime || new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+      content: sowNoteText.trim()
+    };
+
+    const existingNotes = selectedSow.dailyNotes || [];
+
+    const updatedSow: Sow = {
+      ...selectedSow,
+      dailyNotes: [newNote, ...existingNotes]
+    };
+
+    onUpdateSow(updatedSow);
+    setSelectedSow(updatedSow);
+    setShowSowNoteModal(false);
+    setSowNoteText('');
+  };
+
+  // Xóa ghi chú nhật ký
+  const handleDeleteSowNote = (noteId: string) => {
+    if (!selectedSow) return;
+
+    const updatedNotes = (selectedSow.dailyNotes || []).filter(n => n.id !== noteId);
+
+    const updatedSow: Sow = {
+      ...selectedSow,
+      dailyNotes: updatedNotes
+    };
+
+    onUpdateSow(updatedSow);
+    setSelectedSow(updatedSow);
+  };
+
+  // Xác nhận tiêm vắc xin
+  const handleAdministerVaccine = (vaccineId: string) => {
+    if (!selectedSow) return;
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    const updatedVaccines = selectedSow.vaccines.map((v) => {
+      if (v.id === vaccineId) {
+        return {
+          ...v,
+          status: 'done' as const,
+          administeredDate: todayStr
+        };
+      }
+      return v;
+    });
+
+    const updatedSow: Sow = {
+      ...selectedSow,
+      vaccines: updatedVaccines
+    };
+
+    onUpdateSow(updatedSow);
+    setSelectedSow(updatedSow);
+  };
+
+  // Thêm lịch tiêm mới
+  const handleAddVaccine = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSow || !newVaccineName || !newVaccineDate) return;
+
+    const newVac = {
+      id: `vac-${Date.now()}`,
+      type: newVaccineType,
+      vaccineName: newVaccineName,
+      scheduledDate: newVaccineDate,
+      dosage: newVaccineDosage || undefined,
+      notes: newVaccineNotes || undefined,
+      status: 'pending' as const
+    };
+
+    const updatedSow: Sow = {
+      ...selectedSow,
+      vaccines: [...selectedSow.vaccines, newVac]
+    };
+
+    onUpdateSow(updatedSow);
+    setSelectedSow(updatedSow);
+    setShowVaccineModal(false);
+    setNewVaccineType('vaccine');
+    setNewVaccineName('');
+    setNewVaccineDate('');
+    setNewVaccineDosage('');
+    setNewVaccineNotes('');
+  };
+
+  const getStatusBadge = (sow: Sow) => {
+    const st = sow.status;
+    if (st === 'in_gestation') {
+      const latestBreeding = sow.breedingHistory[0];
+      if (latestBreeding && latestBreeding.breedingDate) {
+        const breedDateObj = new Date(latestBreeding.breedingDate);
+        const nowObj = new Date();
+        const diffDays = Math.floor((nowObj.getTime() - breedDateObj.getTime()) / (1000 * 60 * 60 * 24));
+        const isFailed = latestBreeding.ultrasoundDay21 === 'not_pregnant' || latestBreeding.status === 'failed';
+
+        if (!isFailed && diffDays <= 24) {
+          return (
+            <span className="status-pill" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>
+              Mới Phối Thành Công ({diffDays >= 0 ? `${diffDays}d` : 'Mới phối'})
+            </span>
+          );
+        } else if (!isFailed) {
+          return (
+            <span className="status-pill status-active" style={{ fontWeight: 700 }}>
+              Đang Mang Thai ({diffDays}d)
+            </span>
+          );
+        }
+      }
+      return <span className="status-pill status-active" style={{ fontWeight: 700 }}>Đang Mang Thai</span>;
+    }
+
     switch (st) {
-      case 'in_gestation':
-        return <span className="status-pill" style={{ background: '#fef3c7', color: '#b45309' }}>Đang Mang Thai</span>;
       case 'farrowing':
       case 'nursing':
-        return <span className="status-pill status-active">Đang Đẻ / Bú Sữa</span>;
+        return <span className="status-pill status-active">Đã Đẻ</span>;
       case 'weaned':
         return <span className="status-pill" style={{ background: '#e0f2fe', color: '#0369a1' }}>Đã Cai Sữa</span>;
       case 'waiting':
@@ -222,7 +465,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
         <div>
           <h1 className="custom-title-h2">Quản Lý Hồ Sơ Heo Nái</h1>
           <p className="custom-subtitle">
-            Theo dõi RFID/Thẻ tai, chu kỳ phối giống, thai kỳ (dự báo ngày đẻ), đỡ đẻ & lịch tiêm phòng vắc xin.
+            Theo dõi chu kỳ phối giống, thai kỳ (dự báo ngày đẻ), đỡ đẻ & lịch tiêm phòng vắc xin.
           </p>
         </div>
 
@@ -279,14 +522,14 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
           </div>
 
           <Input
-            placeholder="Tìm Mã RFID/Thẻ tai..."
+            placeholder="Tìm Mã Thẻ Tai / Tên Nái..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ marginBottom: '1rem' }}
           />
 
           <div className="sow-list-container">
-            {filteredSows.map((sow) => (
+            {paginatedSows.map((sow) => (
               <div
                 key={sow.id}
                 onClick={() => {
@@ -310,10 +553,17 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 <div style={{ fontSize: '0.825rem', color: '#475569', marginTop: '0.35rem' }}>
                   Giống: <strong>{sow.breed}</strong> | Lứa: <strong>{sow.currentParity}</strong>
                 </div>
-                <div style={{ marginTop: '0.5rem' }}>{getStatusBadge(sow.status)}</div>
+                <div style={{ marginTop: '0.5rem' }}>{getStatusBadge(sow)}</div>
               </div>
             ))}
           </div>
+
+          <Pagination
+            currentPage={sowPage}
+            totalItems={filteredSows.length}
+            pageSize={PAGE_SIZE}
+            onPageChange={setSowPage}
+          />
         </div>
 
 
@@ -332,7 +582,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                   </div>
                 </div>
                 <div className="sow-header-status-box">
-                  {getStatusBadge(selectedSow.status)}
+                  {getStatusBadge(selectedSow)}
                   <span className="sow-parity-pill">
                     Đã trải qua: <strong>{selectedSow.currentParity} lứa đẻ</strong>
                   </span>
@@ -379,7 +629,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 className={`auth-tab ${activeSubTab === 'vaccines' ? 'active' : ''}`}
                 onClick={() => setActiveSubTab('vaccines')}
               >
-                Lịch Tiêm Phòng
+                Tiêm Phòng & Thuốc Điều Trị
               </button>
             </div>
 
@@ -416,8 +666,69 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem' }}>Ghi chú đặc điểm nái:</h4>
-                  <p style={{ fontSize: '0.875rem', color: '#475569' }}>{selectedSow.notes || 'Chưa có ghi chú bổ sung.'}</p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Nhật Ký Theo Ngày / Hiện Tượng Heo Nái:</h4>
+                    <Button
+                      variant="primary"
+                      onClick={() => {
+                        setNoteDate(new Date().toISOString().split('T')[0]);
+                        setNoteTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
+                        setSowNoteText('');
+                        setShowSowNoteModal(true);
+                      }}
+                      style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                    >
+                      + Thêm Ghi Chú Mới
+                    </Button>
+                  </div>
+
+                  {selectedSow.dailyNotes && selectedSow.dailyNotes.length > 0 ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', maxHeight: '210px', overflowY: 'auto', paddingRight: '0.2rem' }}>
+                      {selectedSow.dailyNotes.map((dn) => (
+                        <div
+                          key={dn.id}
+                          style={{
+                            background: '#ffffff',
+                            padding: '0.65rem 0.85rem',
+                            borderRadius: '6px',
+                            border: '1px solid #cbd5e1',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            gap: '0.5rem'
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)', marginBottom: '0.2rem' }}>
+                              Ngày: {formatDateVN(dn.date)} {dn.time ? `• ${dn.time}` : ''}
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#334155', whiteSpace: 'pre-line' }}>
+                              {dn.content}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSowNote(dn.id)}
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              padding: '0.1rem 0.3rem'
+                            }}
+                            title="Xóa ghi chú này"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: '0.85rem', color: '#94a3b8', fontStyle: 'italic', margin: 0 }}>
+                      Chưa có ghi chú nhật ký theo ngày. Bấm nút "+ Thêm Ghi Chú Mới" để ghi nhận hiện tượng heo (VD: 15/10 heo bỏ ăn nhẹ, 18/10 hồng hào lại...).
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -438,40 +749,92 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                       <tr>
                         <th>Ngày Phối</th>
                         <th>Phương Pháp & Nguồn Tinh</th>
-                        <th>Người Phối</th>
-                        <th>Khám Thai (Ngày 21–25)</th>
-                        <th>Khám Thai (Ngày 60)</th>
                         <th>Ngày Dự Sinh (+114 ngày)</th>
                         <th>Trạng Thái</th>
+                        <th>Thao Tác</th>
                       </tr>
                     </thead>
                     <tbody>
                       {selectedSow.breedingHistory.length > 0 ? (
-                        selectedSow.breedingHistory.map((b) => (
-                          <tr key={b.id}>
-                            <td><strong>{formatDateVN(b.breedingDate)}</strong></td>
-                            <td>
-                              <div>{b.method === 'artificial' ? 'Thụ tinh nhân tạo' : 'Phối tự nhiên'}</div>
-                              <div style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Tinh: {b.boarCode}</div>
-                            </td>
-                            <td>{b.technician} ({b.timesCount} lần)</td>
-                            <td>
-                              <span className="status-pill status-active">Đã đậu thai</span>
-                            </td>
-                            <td>
-                              <span className="status-pill status-active">Thai khỏe mạnh</span>
-                            </td>
-                            <td>
-                              <strong style={{ color: '#dc2626' }}>{formatDateVN(b.expectedFarrowDate)}</strong>
-                            </td>
-                            <td>
-                              <span className="camp-tag">{b.status === 'in_gestation' ? 'Đang mang thai' : 'Đã đẻ'}</span>
-                            </td>
-                          </tr>
-                        ))
+                        selectedSow.breedingHistory.map((b) => {
+                          // Tính số ngày từ lúc phối đến hôm nay
+                          const breedDateObj = new Date(b.breedingDate);
+                          const nowObj = new Date();
+                          const diffTime = nowObj.getTime() - breedDateObj.getTime();
+                          const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+                          const isFailed = b.ultrasoundDay21 === 'not_pregnant' || b.status === 'failed';
+                          const isFarrowed = b.status === 'farrowed';
+
+                          let statusBadge;
+                          if (isFailed) {
+                            statusBadge = (
+                              <span className="status-pill" style={{ background: '#fef2f2', color: '#dc2626', fontWeight: 700 }}>
+                                Thất bại - Phối lại
+                              </span>
+                            );
+                          } else if (isFarrowed) {
+                            statusBadge = <span className="camp-tag">Đã đẻ</span>;
+                          } else if (diffDays <= 24) {
+                            statusBadge = (
+                              <span className="status-pill" style={{ background: '#e0f2fe', color: '#0369a1', fontWeight: 700 }}>
+                                Mới phối thành công ({diffDays >= 0 ? `${diffDays} ngày` : 'Mới phối'})
+                              </span>
+                            );
+                          } else {
+                            statusBadge = (
+                              <span className="status-pill status-active" style={{ fontWeight: 700 }}>
+                                Đang mang thai ({diffDays} ngày)
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <tr key={b.id}>
+                              <td><strong>{formatDateVN(b.breedingDate)}</strong></td>
+                              <td>
+                                <div>{b.method === 'artificial' ? 'Thụ tinh nhân tạo' : 'Phối tự nhiên'}</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--primary)' }}>Tinh: {b.boarCode}</div>
+                              </td>
+                              <td>
+                                <strong style={{ color: isFailed ? '#94a3b8' : '#dc2626' }}>
+                                  {isFailed ? 'Hủy lịch dự sinh' : formatDateVN(b.expectedFarrowDate)}
+                                </strong>
+                              </td>
+                              <td>
+                                {statusBadge}
+                              </td>
+                              <td>
+                                {!isFailed && !isFarrowed && (
+                                  <button
+                                    type="button"
+                                    disabled={diffDays > 24}
+                                    onClick={() => handleMarkBreedingFailed(b.id)}
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      padding: '0.3rem 0.6rem',
+                                      background: diffDays > 24 ? '#f1f5f9' : '#fff1f2',
+                                      color: diffDays > 24 ? '#94a3b8' : '#be123c',
+                                      border: `1px solid ${diffDays > 24 ? '#e2e8f0' : '#fecdd3'}`,
+                                      borderRadius: '6px',
+                                      cursor: diffDays > 24 ? 'not-allowed' : 'pointer',
+                                      fontWeight: 600
+                                    }}
+                                    title={diffDays > 24 ? 'Nái đã qua 24 ngày an toàn (đang mang thai), không thể báo phối lại' : ''}
+                                  >
+                                    Báo Không Đậu (Phối Lại)
+                                  </button>
+                                )}
+                                {isFailed && (
+                                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Đã ghi nhận phối lại</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
-                          <td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>
                             Chưa có dữ liệu phối giống.
                           </td>
                         </tr>
@@ -504,32 +867,65 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                                 Lứa Đẻ Thứ #{f.parityNumber} (Ngày: {formatDateVN(f.farrowingDate)})
                               </h4>
                               {!f.weanDate || typeof f.weanDate === 'string' && f.weanDate.includes('Đang') ? (
-                                <div className="wean-action-group">
-                                  <Input
-                                    placeholder="Số con cai sữa..."
-                                    value={weanedCount}
-                                    onChange={(e) => setWeanedCount(e.target.value)}
-                                    style={{ width: '130px' }}
-                                  />
+                                <div className="wean-action-group" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                                   <Button variant="secondary" onClick={() => handleWeanPigs(f.id)}>
-                                    Cai Sữa & Tách Đàn
+                                    Tách Mẹ
                                   </Button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRiskModal(f.id, f)}
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      padding: '0.45rem 0.75rem',
+                                      background: '#fff7ed',
+                                      color: '#c2410c',
+                                      border: '1px solid #ffedd5',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    Chỉnh Sửa (Đực/Cái/Ghi Chú)
+                                  </button>
                                 </div>
                               ) : (
-                                <span className="status-pill status-active">Đã Cai Sữa ({formatDateVN(String(f.weanDate))})</span>
+                                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                  <span className="status-pill status-active">Đã Tách Mẹ ({formatDateVN(String(f.weanDate))})</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenRiskModal(f.id, f)}
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      padding: '0.3rem 0.6rem',
+                                      background: '#f8fafc',
+                                      color: '#64748b',
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '6px',
+                                      cursor: 'pointer',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    Chỉnh Sửa
+                                  </button>
+                                </div>
                               )}
                             </div>
 
                             <div className="farrowing-stat-grid">
-                              <div>Con sống: <strong style={{ color: '#16a34a' }}>{f.bornAlive} con</strong></div>
+                              <div>Con sống: <strong style={{ color: '#16a34a' }}>{f.bornAlive} con</strong>
+                                {(f.maleCount !== undefined || f.femaleCount !== undefined) && (
+                                  <span style={{ fontSize: '0.8rem', color: '#0369a1', marginLeft: '0.4rem' }}>
+                                    ({f.maleCount ?? 0} đực, {f.femaleCount ?? 0} cái)
+                                  </span>
+                                )}
+                              </div>
                               <div>Chết lưu: <strong>{f.stillborn} con</strong></div>
                               <div>Dị tật/chết non: <strong>{f.mummified} con</strong></div>
-                              <div>Trọng lượng sơ sinh: <strong>{f.totalBornWeightKg} kg</strong></div>
                             </div>
 
                             {f.deathReasonSummary && (
-                              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#c2410c' }}>
-                                Nguyên nhân rủi ro: {f.deathReasonSummary}
+                              <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#475569', background: '#f1f5f9', padding: '0.4rem 0.6rem', borderRadius: '4px' }}>
+                                <strong>Ghi chú:</strong> {f.deathReasonSummary}
                               </div>
                             )}
                           </div>
@@ -569,33 +965,80 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
               </div>
             )}
 
-            {/* Sub Tab Content 4: VACCINES */}
+            {/* Sub Tab Content 4: VACCINES & TREATMENTS */}
             {activeSubTab === 'vaccines' && (
               <div className="container-fade-in" style={{ marginTop: '1rem' }}>
-                <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Lịch Tiêm Phòng Vắc Xin Theo Tuổi Thai</h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                  <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Lịch Tiêm Phòng Vắc Xin & Thuốc Điều Trị</h4>
+                  <Button variant="primary" onClick={() => setShowVaccineModal(true)}>
+                    + Thêm Lịch Tiêm / Dùng Thuốc
+                  </Button>
+                </div>
+
                 <div className="table-responsive">
                   <table className="custom-table">
                     <thead>
                       <tr>
-                        <th>Tên Vắc Xin / Kháng Thể</th>
-                        <th>Ngày Hẹn Tiêm</th>
-                        <th>Ngày Đã Tiêm Thực Tế</th>
+                        <th>Loại Tiêm</th>
+                        <th>Tên Vắc Xin / Thuốc Điều Trị</th>
+                        <th>Liều Lượng & Ghi Chú</th>
+                        <th>Ngày Hẹn / Chỉ Định</th>
+                        <th>Ngày Đã Tiêm</th>
                         <th>Trạng Thái</th>
+                        <th>Thao Tác</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedSow.vaccines.map((v) => (
-                        <tr key={v.id}>
-                          <td><strong>{v.vaccineName}</strong></td>
-                          <td>{formatDateVN(v.scheduledDate)}</td>
-                          <td>{v.administeredDate ? formatDateVN(v.administeredDate) : '---'}</td>
-                          <td>
-                            <span className={`status-pill status-${v.status === 'done' ? 'active' : 'pending'}`}>
-                              {v.status === 'done' ? 'Đã tiêm phòng' : 'Chờ đến ngày tiêm'}
-                            </span>
+                      {selectedSow.vaccines.length > 0 ? (
+                        selectedSow.vaccines.map((v) => (
+                          <tr key={v.id}>
+                            <td>
+                              <span
+                                className="status-pill"
+                                style={{
+                                  background: v.type === 'treatment' ? '#ffedd5' : '#e0f2fe',
+                                  color: v.type === 'treatment' ? '#c2410c' : '#0369a1',
+                                  fontWeight: 600
+                                }}
+                              >
+                                {v.type === 'treatment' ? 'Thuốc điều trị' : 'Vắc xin phòng'}
+                              </span>
+                            </td>
+                            <td><strong>{v.vaccineName}</strong></td>
+                            <td>
+                              {v.dosage && <div style={{ fontSize: '0.85rem' }}><strong>Liều:</strong> {v.dosage}</div>}
+                              {v.notes && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{v.notes}</div>}
+                              {!v.dosage && !v.notes && '---'}
+                            </td>
+                            <td>{formatDateVN(v.scheduledDate)}</td>
+                            <td>{v.administeredDate ? formatDateVN(v.administeredDate) : '---'}</td>
+                            <td>
+                              <span className={`status-pill status-${v.status === 'done' ? 'active' : 'pending'}`}>
+                                {v.status === 'done' ? 'Đã thực hiện' : 'Chờ thực hiện'}
+                              </span>
+                            </td>
+                            <td>
+                              {v.status !== 'done' ? (
+                                <Button
+                                  variant="primary"
+                                  onClick={() => handleAdministerVaccine(v.id)}
+                                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                                >
+                                  {v.type === 'treatment' ? 'Dùng Thuốc' : 'Tiêm Phòng'}
+                                </Button>
+                              ) : (
+                                <span style={{ fontSize: '0.75rem', color: '#16a34a', fontWeight: 700 }}>✓ Đã Hoàn Thành</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '1.5rem', color: '#94a3b8' }}>
+                            Chưa có dữ liệu tiêm phòng hoặc thuốc điều trị.
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -621,19 +1064,15 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
             </div>
             <form onSubmit={handleCreateSow} className="modal-form">
               <Input
-                label="Mã Thẻ Tai / RFID"
-                placeholder="VD: NAI-8805"
+                label="Mã Thẻ Tai / Tên Nái"
+                placeholder="VD: NAI-8805 (Nái Đen), NAI-01..."
                 value={rfidTag}
                 onChange={(e) => setRfidTag(e.target.value)}
                 required
               />
-              <Dropdown
+              <Input
                 label="Giống Heo Nái"
-                options={[
-                  { label: 'Landrace Thuần Chủng', value: 'Landrace' },
-                  { label: 'Yorkshire Siêu Nái', value: 'Yorkshire' },
-                  { label: 'Duroc Hậu Bị', value: 'Duroc' }
-                ]}
+                placeholder="VD: Landrace, Yorkshire, Duroc..."
                 value={breed}
                 onChange={(e) => setBreed(e.target.value)}
               />
@@ -642,12 +1081,9 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
               />
-              <Dropdown
+              <Input
                 label="Phân vào Chuồng"
-                options={[
-                  { label: 'Chuồng Nái Đẻ A1 (CH-A1)', value: 'CH-A1' },
-                  { label: 'Chuồng Cai Sữa C1 (CH-C1)', value: 'CH-C1' }
-                ]}
+                placeholder="VD: CH-A1, CH-B2..."
                 value={penCode}
                 onChange={(e) => setPenCode(e.target.value)}
               />
@@ -697,12 +1133,6 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 value={boarCode}
                 onChange={(e) => setBoarCode(e.target.value)}
               />
-              <Input
-                label="Người thực hiện phối"
-                placeholder="VD: KTV Hoàng"
-                value={technician}
-                onChange={(e) => setTechnician(e.target.value)}
-              />
 
               <div className="modal-actions">
                 <Button type="button" variant="outline" onClick={() => setShowBreedingModal(false)}>Hủy</Button>
@@ -744,18 +1174,12 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div>
                 <Input
                   label="Số con mummified/dị tật"
                   type="number"
                   value={mummified}
                   onChange={(e) => setMummified(e.target.value)}
-                />
-                <Input
-                  label="Tổng cân nặng sơ sinh (kg)"
-                  type="number"
-                  value={totalBornWeightKg}
-                  onChange={(e) => setTotalBornWeightKg(e.target.value)}
                 />
               </div>
 
@@ -764,6 +1188,162 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 <Button type="submit" variant="primary">Xác Nhận Đỡ Đẻ</Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Vaccine & Treatment Modal */}
+      {showVaccineModal && (
+        <div className="modal-overlay">
+          <div className="modal-card animate-fade-in">
+            <div className="modal-header">
+              <h3>Kê Đơn Tiêm Phòng Vắc Xin / Thuốc Điều Trị</h3>
+              <button className="close-btn" onClick={() => setShowVaccineModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleAddVaccine} className="modal-form">
+              <Dropdown
+                label="Phân Loại Tiêm"
+                options={[
+                  { label: 'Vắc Xin Phòng Bệnh (Định Kỳ Theo Tuổi Thai)', value: 'vaccine' },
+                  { label: 'Thuốc Điều Trị Bệnh (Kháng Sinh, Hạ Sốt, Bổ Sức)', value: 'treatment' }
+                ]}
+                value={newVaccineType}
+                onChange={(e) => setNewVaccineType(e.target.value as 'vaccine' | 'treatment')}
+              />
+              <Input
+                label={newVaccineType === 'treatment' ? 'Tên Thuốc / Kháng Sinh' : 'Tên Vắc Xin / Kháng Thể'}
+                placeholder={newVaccineType === 'treatment' ? 'VD: Amoxicillin, Tylosin, Penicillin...' : 'VD: Vắc xin Dịch Tả, E. coli, PRRS...'}
+                value={newVaccineName}
+                onChange={(e) => setNewVaccineName(e.target.value)}
+                required
+              />
+              <DatePicker
+                label={newVaccineType === 'treatment' ? 'Ngày Chỉ Định / Dùng Thuốc' : 'Ngày Hẹn Tiêm Dự Kiến'}
+                value={newVaccineDate}
+                onChange={(e) => setNewVaccineDate(e.target.value)}
+                required
+              />
+              <Input
+                label="Liều Lượng (ml hoặc liều/con)"
+                placeholder="VD: 5ml / con, 2ml / con..."
+                value={newVaccineDosage}
+                onChange={(e) => setNewVaccineDosage(e.target.value)}
+              />
+              <Input
+                label="Ghi Chú Bệnh / Chỉ Định Điều Trị"
+                placeholder="VD: Sốt bỏ ăn, ho nhẹ, tiêm nhắc lại sau 3 ngày..."
+                value={newVaccineNotes}
+                onChange={(e) => setNewVaccineNotes(e.target.value)}
+              />
+
+              <div className="modal-actions">
+                <Button type="button" variant="outline" onClick={() => setShowVaccineModal(false)}>Hủy</Button>
+                <Button type="submit" variant="primary">Lưu Đơn Tiêm / Thuốc</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Farrowing Detail Modal (Đực/Cái/Ghi Chú) */}
+      {showRiskModal && (
+        <div className="modal-overlay">
+          <div className="modal-card animate-fade-in">
+            <div className="modal-header">
+              <h3>Chỉnh Sửa Chi Tiết Lứa Đẻ</h3>
+              <button className="close-btn" onClick={() => setShowRiskModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveRiskReason} className="modal-form">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <Input
+                  label="Số con đực"
+                  type="number"
+                  placeholder="VD: 6"
+                  value={maleCount}
+                  onChange={(e) => setMaleCount(e.target.value)}
+                />
+                <Input
+                  label="Số con cái"
+                  type="number"
+                  placeholder="VD: 6"
+                  value={femaleCount}
+                  onChange={(e) => setFemaleCount(e.target.value)}
+                />
+              </div>
+
+              <Input
+                label="Ghi Chú (Nguyên nhân rủi ro, heo chết non, lưu ý sức khỏe...)"
+                placeholder="VD: Mẹ đè 1 con ngày thứ 2, heo con tiêu chảy..."
+                value={riskReason}
+                onChange={(e) => setRiskReason(e.target.value)}
+              />
+
+              <div className="modal-actions">
+                <Button type="button" variant="outline" onClick={() => setShowRiskModal(false)}>Hủy</Button>
+                <Button type="submit" variant="primary">Lưu Chỉnh Sửa</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Sow Note Edit Modal */}
+      {showSowNoteModal && (
+        <div className="modal-overlay">
+          <div className="modal-card animate-fade-in">
+            <div className="modal-header">
+              <h3>Cập Nhật Nhật Ký Ghi Chú Heo Nái</h3>
+              <button className="close-btn" onClick={() => setShowSowNoteModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleSaveSowNote} className="modal-form">
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <DatePicker
+                  label="Ngày ghi nhận"
+                  value={noteDate}
+                  onChange={(e) => setNoteDate(e.target.value)}
+                  required
+                />
+                <Input
+                  label="Giờ ghi nhận"
+                  type="text"
+                  placeholder="VD: 08:30"
+                  value={noteTime}
+                  onChange={(e) => setNoteTime(e.target.value)}
+                />
+              </div>
+
+              <Input
+                label="Nội dung hiện tượng / Sức khỏe heo"
+                placeholder="VD: Heo bỏ ăn nhẹ, ho hắt hơi, ủ rũ..."
+                value={sowNoteText}
+                onChange={(e) => setSowNoteText(e.target.value)}
+                required
+              />
+
+              <div className="modal-actions">
+                <Button type="button" variant="outline" onClick={() => setShowSowNoteModal(false)}>Hủy</Button>
+                <Button type="submit" variant="primary">Lưu Ghi Chú</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Notification Modal Dialog */}
+      {notificationMsg && (
+        <div className="modal-overlay" style={{ zIndex: 1100 }}>
+          <div className="modal-card animate-fade-in" style={{ maxWidth: '420px', textAlign: 'center' }}>
+            <div className="modal-header" style={{ justifyContent: 'center' }}>
+              <h3 style={{ color: 'var(--primary)' }}>Thông Báo Hệ Thống</h3>
+            </div>
+            <div style={{ padding: '1.25rem 0', fontSize: '0.925rem', color: '#334155', fontWeight: 600 }}>
+              {notificationMsg}
+            </div>
+            <div className="modal-actions" style={{ justifyContent: 'center' }}>
+              <Button variant="primary" onClick={() => setNotificationMsg(null)} style={{ padding: '0.5rem 1.5rem' }}>
+                Đã Hiểu
+              </Button>
+            </div>
           </div>
         </div>
       )}
