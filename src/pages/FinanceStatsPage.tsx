@@ -344,7 +344,7 @@ export const FinanceStatsPage: React.FC<FinanceStatsPageProps> = ({
                 fontWeight: 700
               }}
             >
-              📊 Thống Kê Theo Năm
+              Thống Kê Theo Năm
             </Button>
           )}
 
@@ -819,7 +819,7 @@ export const FinanceStatsPage: React.FC<FinanceStatsPageProps> = ({
                 onChange={(e) => setExpenseNotes(e.target.value)}
               />
 
-              <div className="modal-actions" style={{ marginTop: '1rem' }}>
+              <div className="modal-actions">
                 <Button type="button" variant="outline" onClick={() => setShowAddExpenseModal(false)}>
                   Hủy Bỏ
                 </Button>

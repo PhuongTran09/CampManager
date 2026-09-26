@@ -987,36 +987,13 @@ export const InventoryPage: React.FC<InventoryPageProps> = ({
                   placeholder="VD: Ngăn mát tủ lạnh, Kệ số 2..."
                 />
 
-                <div className="inventory-edit-actions">
-                  <div className="inventory-edit-actions-main">
-                    <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
-                      Hủy Bỏ
-                    </Button>
-                    <Button type="submit" variant="primary">
-                      Lưu Thay Đổi
-                    </Button>
-                  </div>
-                  {onDeleteItem && (
-                    <button
-                      type="button"
-                      className="inventory-delete-btn"
-                      onClick={() => {
-                        confirm({
-                          title: 'Xác Nhận Xóa Vật Tư',
-                          message: `Bạn có chắc chắn muốn xóa vật tư "${editingItem.name}" khỏi danh sách kho không?`,
-                          description: 'Toàn bộ thông tin tồn kho của vật tư này sẽ bị xóa khỏi hệ thống.',
-                          confirmText: 'Xác Nhận Xóa',
-                          onConfirm: () => {
-                            onDeleteItem(editingItem.id);
-                            setShowEditModal(false);
-                            toast.success(`Đã xóa vật tư "${editingItem.name}" khỏi kho!`);
-                          }
-                        });
-                      }}
-                    >
-                      Xóa Vật Tư Khỏi Kho
-                    </button>
-                  )}
+                <div className="modal-actions">
+                  <Button type="button" variant="outline" onClick={() => setShowEditModal(false)}>
+                    Hủy Bỏ
+                  </Button>
+                  <Button type="submit" variant="primary">
+                    Lưu Thay Đổi
+                  </Button>
                 </div>
               </form>
             )}

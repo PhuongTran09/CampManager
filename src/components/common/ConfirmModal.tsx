@@ -66,7 +66,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }}
         >
           <div
-            className="modal-card animate-fade-in"
+            className="modal-card modal-card-confirm animate-fade-in"
             style={{
               maxWidth: '430px',
               padding: '1.5rem',
