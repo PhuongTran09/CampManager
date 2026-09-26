@@ -49,14 +49,19 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
   const [birthDate, setBirthDate] = useState('');
   const [penCode, setPenCode] = useState('CH-A1');
 
+  const getTodayStr = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  };
+
   // Breeding Form State
-  const [breedingDate, setBreedingDate] = useState('');
+  const [breedingDate, setBreedingDate] = useState(getTodayStr);
   const [method, setMethod] = useState<'artificial' | 'natural'>('artificial');
   const [boarCode, setBoarCode] = useState('');
   const [timesCount] = useState('2');
 
   // Farrowing Form State
-  const [farrowingDate, setFarrowingDate] = useState('');
+  const [farrowingDate, setFarrowingDate] = useState(getTodayStr);
   const [bornAlive, setBornAlive] = useState('12');
   const [stillborn, setStillborn] = useState('0');
   const [mummified, setMummified] = useState('0');
@@ -474,17 +479,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
         </Button>
       </div>
 
-      {/* Sow List Menu Button (Web & Mobile) */}
-      <div className="sow-toggle-bar">
-        <button
-          type="button"
-          className="sow-menu-btn"
-          onClick={() => setShowSowListMenu(!showSowListMenu)}
-        >
-          <span>Danh Sách Heo Nái ({filteredSows.length})</span>
-          <span>{selectedSow ? `Đang chọn: ${selectedSow.rfidTag}` : 'Chọn nái...'} ▾</span>
-        </button>
-      </div>
+
 
       {/* Main Grid View */}
       <div className="sow-profile-layout">
@@ -571,7 +566,19 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
         {selectedSow ? (
           <div className="sow-detail-pane container-fade-in">
             {/* Top Detail Header */}
-            <div className="sow-detail-header container-fade-in">
+            <div
+              className="sow-detail-header container-fade-in sow-header-clickable"
+              onClick={() => setShowSowListMenu(true)}
+              title="Nhấn để đổi hoặc chọn heo nái khác"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowSowListMenu(true);
+                }
+              }}
+            >
               <div className="sow-header-top">
                 <div className="sow-title-group">
                   <div>
@@ -583,8 +590,10 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                 </div>
                 <div className="sow-header-status-box">
                   {getStatusBadge(selectedSow)}
-                  <span className="sow-parity-pill">
-                    Đã trải qua: <strong>{selectedSow.currentParity} lứa đẻ</strong>
+                  <span className="sow-header-select-pill">
+                    <span className="sow-pill-text">Nhấn để chọn</span>
+                    <span className="sow-pill-count">({filteredSows.length} nái)</span>
+                    <span className="sow-pill-arrow">▾</span>
                   </span>
                 </div>
               </div>
@@ -657,12 +666,6 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                     </h3>
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Trọng Lượng Cai Sữa Trung Bình</span>
-                    <h3 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0284c7', marginTop: '0.2rem' }}>
-                      7.2 kg / con
-                    </h3>
-                  </div>
                 </div>
 
                 <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
@@ -676,9 +679,12 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                         setSowNoteText('');
                         setShowSowNoteModal(true);
                       }}
+                      className="add-sow-note-btn"
                       style={{ padding: '0.3rem 0.65rem', fontSize: '0.75rem' }}
+                      title="Thêm Ghi Chú Mới"
                     >
-                      + Thêm Ghi Chú Mới
+                      <span className="btn-icon-plus">+</span>
+                      <span className="btn-text-full"> Thêm Ghi Chú Mới</span>
                     </Button>
                   </div>
 
@@ -738,7 +744,13 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
               <div className="container-fade-in" style={{ marginTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Lịch Sử Chu Kỳ Phối Giống & Siêu Âm Thai</h4>
-                  <Button variant="primary" onClick={() => setShowBreedingModal(true)}>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setBreedingDate(getTodayStr());
+                      setShowBreedingModal(true);
+                    }}
+                  >
                     + Thêm Phối Giống Lứa Mới
                   </Button>
                 </div>
@@ -850,7 +862,13 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
               <div className="container-fade-in" style={{ marginTop: '1rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h4 style={{ fontSize: '1rem', fontWeight: 700 }}>Lịch Sử Đỡ Đẻ, Số Con & Cai Sữa</h4>
-                  <Button variant="primary" onClick={() => setShowFarrowingModal(true)}>
+                  <Button
+                    variant="primary"
+                    onClick={() => {
+                      setFarrowingDate(getTodayStr());
+                      setShowFarrowingModal(true);
+                    }}
+                  >
                     + Ghi Nhận Lứa Đẻ Mới
                   </Button>
                 </div>
@@ -1048,8 +1066,27 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
 
           </div>
         ) : (
-          <div style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
-            Vui lòng chọn một heo nái từ danh sách bên trái để xem thông tin chi tiết.
+          <div className="sow-detail-pane container-fade-in">
+            <div
+              className="sow-detail-header container-fade-in sow-header-clickable"
+              onClick={() => setShowSowListMenu(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setShowSowListMenu(true);
+                }
+              }}
+              style={{ textAlign: 'center', padding: '2.5rem 1rem', cursor: 'pointer' }}
+            >
+              <h2 className="sow-header-title" style={{ color: '#ffffff', marginBottom: '0.5rem' }}>
+                📋 Nhấn để chọn heo nái ({filteredSows.length}) ▾
+              </h2>
+              <p style={{ margin: 0, color: '#e0f2fe', fontSize: '0.95rem' }}>
+                Chưa chọn heo nái nào. Nhấn vào đây để mở danh sách và chọn heo nái cần theo dõi.
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -1106,12 +1143,34 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
               <button className="close-btn" onClick={() => setShowBreedingModal(false)}>✕</button>
             </div>
             <form onSubmit={handleAddBreeding} className="modal-form">
-              <DatePicker
-                label="Ngày phối giống"
-                value={breedingDate}
-                onChange={(e) => setBreedingDate(e.target.value)}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <DatePicker
+                  label="Ngày phối giống"
+                  value={breedingDate}
+                  onChange={(e) => setBreedingDate(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setBreedingDate(getTodayStr())}
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.775rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    textDecoration: 'underline'
+                  }}
+                  title="Chọn nhanh ngày hôm nay"
+                >
+                  Lấy ngày hôm nay
+                </button>
+              </div>
               {breedingDate && (
                 <div style={{ background: '#fef2f2', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.85rem', color: '#991b1b', fontWeight: 700 }}>
                   Dự báo ngày đẻ (+114 ngày): {calculateExpectedDate(breedingDate)}
@@ -1152,12 +1211,34 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
               <button className="close-btn" onClick={() => setShowFarrowingModal(false)}>✕</button>
             </div>
             <form onSubmit={handleAddFarrowing} className="modal-form">
-              <DatePicker
-                label="Ngày đẻ thực tế"
-                value={farrowingDate}
-                onChange={(e) => setFarrowingDate(e.target.value)}
-                required
-              />
+              <div style={{ position: 'relative' }}>
+                <DatePicker
+                  label="Ngày đẻ thực tế"
+                  value={farrowingDate}
+                  onChange={(e) => setFarrowingDate(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setFarrowingDate(getTodayStr())}
+                  style={{
+                    position: 'absolute',
+                    top: '2px',
+                    right: '2px',
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--primary)',
+                    fontSize: '0.775rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    textDecoration: 'underline'
+                  }}
+                  title="Chọn nhanh ngày hôm nay"
+                >
+                  Lấy ngày hôm nay
+                </button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                 <Input
                   label="Số con sống khỏe mạnh"
@@ -1332,7 +1413,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
       {/* Custom Notification Modal Dialog */}
       {notificationMsg && (
         <div className="modal-overlay" style={{ zIndex: 1100 }}>
-          <div className="modal-card animate-fade-in" style={{ maxWidth: '420px', textAlign: 'center' }}>
+          <div className="modal-card modal-card-auto animate-fade-in" style={{ maxWidth: '420px', textAlign: 'center' }}>
             <div className="modal-header" style={{ justifyContent: 'center' }}>
               <h3 style={{ color: 'var(--primary)' }}>Thông Báo Hệ Thống</h3>
             </div>

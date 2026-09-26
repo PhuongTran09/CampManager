@@ -342,7 +342,7 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
           <div className="modal-card" style={{ maxWidth: '520px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Ghi Nhận Xuất Bán Heo Con / Giống</h3>
-              <button type="button" className="modal-close" onClick={() => setShowSaleModal(false)}>×</button>
+              <button type="button" className="close-btn modal-close" onClick={() => setShowSaleModal(false)} title="Đóng">✕</button>
             </div>
             <form onSubmit={handleConfirmSale}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -495,7 +495,7 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
                 </div>
               </div>
 
-              <div className="modal-footer" style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div className="modal-footer">
                 <Button type="button" variant="outline" onClick={() => setShowSaleModal(false)}>
                   Hủy Bỏ
                 </Button>
@@ -514,7 +514,7 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
           <div className="modal-card" style={{ maxWidth: '650px' }}>
             <div className="modal-header">
               <h3 className="modal-title">Lịch Sử Xuất Bán - Lứa {selectedBatchHistory.batchCode}</h3>
-              <button type="button" className="modal-close" onClick={() => setShowHistoryModal(false)}>×</button>
+              <button type="button" className="close-btn modal-close" onClick={() => setShowHistoryModal(false)} title="Đóng">✕</button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
@@ -574,7 +574,7 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
               </div>
             </div>
 
-            <div className="modal-footer" style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="modal-footer">
               <Button type="button" variant="outline" onClick={() => setShowHistoryModal(false)}>
                 Đóng
               </Button>
