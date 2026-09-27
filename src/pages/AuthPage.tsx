@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Input, Checkbox } from '../components/common';
+import { Button, Input, Checkbox, PigLoading } from '../components/common';
 
 type AuthMode = 'login' | 'register' | 'forgot-password';
 
@@ -66,6 +66,19 @@ export const AuthPage: React.FC = () => {
 
   return (
     <div className="auth-container">
+      {loading && (
+        <PigLoading
+          fullScreen
+          text={
+            mode === 'login'
+              ? 'Đang đăng nhập hệ thống...'
+              : mode === 'register'
+              ? 'Đang tạo tài khoản quản lý...'
+              : 'Đang gửi mã xác minh...'
+          }
+          subtext="Vui lòng chờ trong giây lát..."
+        />
+      )}
       <div className="auth-card animate-fade-in">
         {/* Brand / Logo Header */}
         <div className="auth-header">
