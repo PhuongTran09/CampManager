@@ -249,6 +249,7 @@ export const MOCK_PIGLET_BATCHES: PigletBatch[] = [
   {
     id: 'pb-1',
     batchCode: 'LUA-NAI-8801-L2',
+    parityNumber: 2,
     sowRfid: 'NAI-8801',
     sowName: 'Nái Mẹ 8801',
     birthDate: '2025-02-14',
@@ -292,6 +293,7 @@ export const MOCK_PIGLET_BATCHES: PigletBatch[] = [
   {
     id: 'pb-2',
     batchCode: 'LUA-NAI-8802-L1',
+    parityNumber: 1,
     sowRfid: 'NAI-8802',
     sowName: 'Nái Mẹ 8802',
     birthDate: '2025-01-10',
@@ -325,6 +327,7 @@ export const MOCK_PIGLET_BATCHES: PigletBatch[] = [
   {
     id: 'pb-3',
     batchCode: 'LUA-NAI-8801-L1',
+    parityNumber: 1,
     sowRfid: 'NAI-8801',
     sowName: 'Nái Mẹ 8801',
     birthDate: '2025-05-10',

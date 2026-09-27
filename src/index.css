@@ -49,6 +49,10 @@
   box-sizing: border-box;
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 *, *::before, *::after {
   box-sizing: inherit;
   margin: 0;
@@ -1394,6 +1398,15 @@ body {
   color: #64748b;
 }
 
+/* Lock main page scroll when modal is open */
+html.modal-open,
+body.modal-open,
+html:has(.modal-overlay),
+body:has(.modal-overlay) {
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
 /* Modal Popup */
 .modal-overlay {
   position: fixed;
@@ -1403,8 +1416,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: 2000;
   padding: 1rem;
+  touch-action: none;
+  overscroll-behavior: contain;
 }
 
 .modal-card {
@@ -1420,6 +1435,8 @@ body {
   overflow: hidden;
   position: relative;
   padding: 0;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
 }
 
 .modal-card.modal-card-auto,
@@ -1517,6 +1534,9 @@ body {
   overflow-x: hidden;
   padding: 1.15rem 1.35rem 0 1.35rem;
   gap: 0.85rem;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-body {
@@ -1525,6 +1545,9 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 1.15rem 1.35rem;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Custom Scrollbars for modal content */
@@ -2169,6 +2192,82 @@ body {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  justify-content: flex-end;
+}
+
+.btn-farrowing-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0 0.75rem;
+  height: 32px;
+  background: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn-farrowing-edit:hover {
+  background: #ffedd5;
+  border-color: #fed7aa;
+}
+
+.btn-farrowing-wean {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 0.85rem;
+  height: 32px;
+  background: linear-gradient(135deg, var(--primary) 0%, #4f46e5 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px var(--primary-glow, rgba(37, 99, 235, 0.25));
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn-farrowing-wean:hover {
+  background: linear-gradient(135deg, #1d4ed8 0%, #4338ca 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--primary-glow, rgba(37, 99, 235, 0.35));
+}
+
+.btn-farrowing-wean:active {
+  transform: translateY(0);
+}
+
+.btn-farrowing-edit-weaned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0 0.65rem;
+  height: 32px;
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn-farrowing-edit-weaned:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 /* Horizontal Scrolling Sub-tabs on Mobile */
@@ -2400,14 +2499,22 @@ body {
   }
 
   .wean-action-group {
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.45rem;
     width: 100%;
   }
 
-  .wean-action-group .custom-input-group,
-  .wean-action-group .custom-input,
-  .wean-action-group .custom-btn {
-    width: 100% !important;
+  .wean-action-group .btn-farrowing-edit {
+    flex: 1;
+    height: 32px;
+  }
+
+  .wean-action-group .btn-farrowing-wean {
+    flex: 0 0 auto;
+    height: 32px;
   }
 
   /* 2. Horizontally Scrollable Data Tables strictly contained inside table-responsive */
@@ -3215,6 +3322,306 @@ body {
     font-size: 9pt !important;
   }
 }
+
+/* ==========================================================================
+   PIG LOADING ANIMATIONS & COMPONENT STYLES
+   ========================================================================== */
+.pig-loading-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 1rem;
+  margin: 0;
+  box-sizing: border-box;
+  animation: pigFadeIn 0.25s ease-out forwards;
+}
+
+.pig-loading-fullscreen.pig-loading-transparent-bg {
+  background-color: rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.pig-loading-card {
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 24px;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(37, 99, 235, 0.08), 0 10px 25px rgba(244, 114, 182, 0.15);
+  padding: 2.25rem 2.5rem;
+  max-width: 360px;
+  width: 90%;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  animation: pigCardPop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.pig-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  user-select: none;
+}
+
+.pig-loading-inline {
+  display: inline-flex;
+  padding: 0.35rem;
+}
+
+.pig-loading-avatar-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.85rem;
+}
+
+.pig-loading-halo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(244, 114, 182, 0.35) 0%, rgba(37, 99, 235, 0.15) 50%, transparent 75%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 1;
+  animation: pigHaloPulse 2s ease-in-out infinite;
+}
+
+.pig-loading-img {
+  position: relative;
+  z-index: 2;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 16px rgba(244, 114, 182, 0.25));
+  animation: pigFloatBounce 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-origin: center bottom;
+}
+
+.pig-loading-shadow {
+  background: radial-gradient(ellipse at center, rgba(15, 23, 42, 0.28) 0%, rgba(15, 23, 42, 0) 70%);
+  border-radius: 50%;
+  margin-top: 4px;
+  z-index: 1;
+  animation: pigShadowPulse 1.8s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.pig-loading-text {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+  text-align: center;
+}
+
+.pig-loading-dots {
+  display: inline-flex;
+  margin-left: 2px;
+}
+
+.pig-loading-dots-bottom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 0.55rem;
+  height: 14px;
+  line-height: 1;
+}
+
+.pig-loading-dot {
+  font-size: 1.6rem;
+  line-height: 0.45;
+  font-weight: 900;
+  color: var(--primary);
+  display: inline-block;
+  animation: pigDotBlink 1.4s infinite ease-in-out;
+}
+
+.pig-loading-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.pig-loading-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.pig-loading-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+.pig-loading-subtext {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+  margin-bottom: 0.65rem;
+  text-align: center;
+  max-width: 260px;
+}
+
+.pig-loading-bar {
+  height: 5px;
+  background-color: #e2e8f0;
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+  margin-top: 0.4rem;
+}
+
+.pig-loading-bar-inner {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 45%;
+  background: linear-gradient(90deg, #f43f5e 0%, #ec4899 50%, #3b82f6 100%);
+  border-radius: 9999px;
+  box-shadow: 0 0 10px rgba(236, 72, 153, 0.5);
+  animation: pigShimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes pigFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pigCardPop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pigFloatBounce {
+  0% {
+    transform: translateY(0px) scale(1, 1);
+  }
+  28% {
+    transform: translateY(-14px) scale(0.96, 1.04) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-18px) scale(1, 1) rotate(0deg);
+  }
+  72% {
+    transform: translateY(-12px) scale(1.03, 0.97) rotate(2deg);
+  }
+  90% {
+    transform: translateY(2px) scale(1.05, 0.95);
+  }
+  100% {
+    transform: translateY(0px) scale(1, 1);
+  }
+}
+
+@keyframes pigShadowPulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(0.6);
+    opacity: 0.12;
+  }
+  90% {
+    transform: scale(1.15);
+    opacity: 0.45;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+}
+
+@keyframes pigHaloPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.4;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.18);
+    opacity: 0.75;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(0.85);
+    opacity: 0.4;
+  }
+}
+
+@keyframes pigDotBlink {
+  0%, 20% {
+    opacity: 0.1;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-2px);
+  }
+  80%, 100% {
+    opacity: 0.1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pigShimmer {
+  0% {
+    left: -40%;
+    width: 30%;
+  }
+  50% {
+    width: 60%;
+  }
+  100% {
+    left: 110%;
+    width: 30%;
+  }
+}
+
+@media (max-width: 640px) {
+  .pig-loading-card {
+    padding: 1.75rem 1.5rem;
+    border-radius: 18px;
+    max-width: 300px;
+  }
+  .pig-loading-text {
+    font-size: 0.88rem;
+  }
+  .pig-loading-subtext {
+    font-size: 0.72rem;
+  }
+}
+
 
 
 

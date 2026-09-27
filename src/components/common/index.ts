@@ -6,3 +6,4 @@ export * from './Checkbox';
 export * from './Toast';
 export * from './ConfirmModal';
 export * from './Pagination';
+export * from './Loading';
