@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { Sow, PigletBatch, InventoryItem, UsedSupplyRecord, FarmExpense } from './types';
 import { MOCK_SOWS, MOCK_PIGLET_BATCHES, MOCK_INVENTORY_ITEMS, MOCK_USED_SUPPLIES, MOCK_FARM_EXPENSES } from './constants/mockData';
 import { Header } from './components/layout';
@@ -8,6 +8,30 @@ import { AuthPage, SowProfilePage, PigletsPage, InventoryPage, FinanceStatsPage,
 export function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState('sows');
+
+  // Khóa cuộn trang chính khi có bất kỳ modal/popup nào đang mở
+  useEffect(() => {
+    const updateModalScrollLock = () => {
+      const hasModal = document.querySelector('.modal-overlay') !== null;
+      if (hasModal) {
+        document.body.classList.add('modal-open');
+        document.documentElement.classList.add('modal-open');
+      } else {
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+      }
+    };
+
+    updateModalScrollLock();
+    const observer = new MutationObserver(updateModalScrollLock);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      document.body.classList.remove('modal-open');
+      document.documentElement.classList.remove('modal-open');
+    };
+  }, []);
 
   // Pig Farm Data State
   const [sows, setSows] = useState<Sow[]>(MOCK_SOWS);

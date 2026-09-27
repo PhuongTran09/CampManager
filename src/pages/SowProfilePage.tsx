@@ -45,9 +45,9 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
 
   // New Sow Form State
   const [rfidTag, setRfidTag] = useState('');
-  const [breed, setBreed] = useState('Landrace');
+  const [breed, setBreed] = useState('');
   const [birthDate, setBirthDate] = useState('');
-  const [penCode, setPenCode] = useState('CH-A1');
+  const [penCode, setPenCode] = useState('');
 
   const getTodayStr = () => {
     const now = new Date();
@@ -269,6 +269,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
       const newPigletBatch: PigletBatch = {
         id: `pb-${Date.now()}`,
         batchCode: `LUA-${selectedSow.rfidTag}-L${weanedRecord.parityNumber}`,
+        parityNumber: weanedRecord.parityNumber,
         sowRfid: selectedSow.rfidTag,
         sowName: selectedSow.name || `Nái Mẹ ${selectedSow.rfidTag}`,
         birthDate: weanedRecord.farrowingDate,
@@ -285,7 +286,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
       onAddPigletBatch(newPigletBatch);
     }
 
-    setNotificationMsg(`Đã thực hiện tách mẹ thành công! Lứa heo con đã được chuyển sang Quản Lý Lứa Heo Con (Mã: LUA-${selectedSow.rfidTag}-L${weanedRecord?.parityNumber || 1}) và nái mẹ về trạng thái "Chờ Phối Giống".`);
+    setNotificationMsg(`Đã thực hiện tách mẹ thành công! Lứa heo con (Lứa thứ #${weanedRecord?.parityNumber || 1} của nái mẹ ${selectedSow.name || selectedSow.rfidTag}) đã được chuyển sang Quản Lý Lứa Heo Con và nái mẹ về trạng thái "Chờ Phối Giống".`);
   };
 
   // Mở modal cập nhật số con đực/cái & ghi chú
@@ -885,25 +886,20 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                                 Lứa Đẻ Thứ #{f.parityNumber} (Ngày: {formatDateVN(f.farrowingDate)})
                               </h4>
                               {!f.weanDate || typeof f.weanDate === 'string' && f.weanDate.includes('Đang') ? (
-                                <div className="wean-action-group" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                                  <Button variant="secondary" onClick={() => handleWeanPigs(f.id)}>
-                                    Tách Mẹ
-                                  </Button>
+                                <div className="wean-action-group">
                                   <button
                                     type="button"
+                                    className="btn-farrowing-edit"
                                     onClick={() => handleOpenRiskModal(f.id, f)}
-                                    style={{
-                                      fontSize: '0.75rem',
-                                      padding: '0.45rem 0.75rem',
-                                      background: '#fff7ed',
-                                      color: '#c2410c',
-                                      border: '1px solid #ffedd5',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      fontWeight: 600
-                                    }}
                                   >
                                     Chỉnh Sửa (Đực/Cái/Ghi Chú)
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-farrowing-wean"
+                                    onClick={() => handleWeanPigs(f.id)}
+                                  >
+                                    Tách Mẹ
                                   </button>
                                 </div>
                               ) : (
@@ -911,17 +907,8 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
                                   <span className="status-pill status-active">Đã Tách Mẹ ({formatDateVN(String(f.weanDate))})</span>
                                   <button
                                     type="button"
+                                    className="btn-farrowing-edit-weaned"
                                     onClick={() => handleOpenRiskModal(f.id, f)}
-                                    style={{
-                                      fontSize: '0.75rem',
-                                      padding: '0.3rem 0.6rem',
-                                      background: '#f8fafc',
-                                      color: '#64748b',
-                                      border: '1px solid #cbd5e1',
-                                      borderRadius: '6px',
-                                      cursor: 'pointer',
-                                      fontWeight: 600
-                                    }}
                                   >
                                     Chỉnh Sửa
                                   </button>
@@ -1096,7 +1083,7 @@ export const SowProfilePage: React.FC<SowProfilePageProps> = ({
         <div className="modal-overlay">
           <div className="modal-card animate-fade-in">
             <div className="modal-header">
-              <h3>Thêm Heo Nái Mới (Định Danh RFID)</h3>
+              <h3>Thêm heo nái mới</h3>
               <button className="close-btn" onClick={() => setShowAddSowModal(false)}>✕</button>
             </div>
             <form onSubmit={handleCreateSow} className="modal-form">

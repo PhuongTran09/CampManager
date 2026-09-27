@@ -5,6 +5,28 @@ import { formatDateVN } from '../utils';
 
 const PAGE_SIZE = 6;
 
+// Helper lấy thông tin hiển thị lứa đẻ thứ mấy của nái mẹ
+export const formatLitterLabel = (batch: PigletBatch) => {
+  let parity = batch.parityNumber;
+  if (!parity) {
+    const match = batch.batchCode.match(/-L(\d+)$/i);
+    if (match) parity = parseInt(match[1], 10);
+  }
+  if (!parity && batch.notes) {
+    const notesMatch = batch.notes.match(/lứa(?:\s+đẻ)?\s+thứ\s+#?(\d+)/i);
+    if (notesMatch) parity = parseInt(notesMatch[1], 10);
+  }
+  return parity ? `Lứa thứ #${parity}` : batch.batchCode;
+};
+
+export const formatLitterDescription = (batch: PigletBatch) => {
+  const litterStr = formatLitterLabel(batch);
+  const sowDisplayName = batch.sowName
+    ? (batch.sowName.includes(batch.sowRfid) ? batch.sowName : `${batch.sowName} (${batch.sowRfid})`)
+    : batch.sowRfid;
+  return `${litterStr} của ${sowDisplayName}`;
+};
+
 interface PigletsPageProps {
   batches: PigletBatch[];
   onUpdateBatch: (updatedBatch: PigletBatch) => void;
@@ -37,8 +59,10 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
   const [currentPage, setCurrentPage] = useState(1);
 
   const filteredBatches = batches.filter((b) => {
+    const litterLabel = formatLitterLabel(b);
     const matchSearch =
       b.batchCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      litterLabel.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.sowRfid.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (b.sowName && b.sowName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       b.penCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,7 +87,7 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
       status: nextStatus,
       weanDate: nextStatus === 'weaned' ? new Date().toISOString().split('T')[0] : batch.weanDate
     });
-    toast.success(`Đã cập nhật trạng thái lứa ${batch.batchCode}!`);
+    toast.success(`Đã cập nhật trạng thái ${formatLitterDescription(batch)}!`);
   };
 
   // Open Sale Modal
@@ -273,6 +297,9 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
                       <span className="sow-tag-highlight" style={{ fontSize: '0.85rem' }}>
                         {b.sowName || b.sowRfid}
                       </span>
+                      <div style={{ fontSize: '0.75rem', color: '#0284c7', fontWeight: 600, marginTop: '3px' }}>
+                        {formatLitterLabel(b)}
+                      </div>
                     </td>
                     <td>{formatDateVN(b.birthDate)}</td>
                     <td>
@@ -347,8 +374,8 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
             <form onSubmit={handleConfirmSale}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-                  <div><strong>Mã lứa:</strong> {selectedBatchForSale.batchCode} (Nái mẹ: {selectedBatchForSale.sowName || selectedBatchForSale.sowRfid})</div>
-                  <div><strong>Số heo hiện còn trong lứa:</strong> <span style={{ color: '#0284c7', fontWeight: 700 }}>{selectedBatchForSale.totalCount} con</span></div>
+                  <div><strong>Lứa đẻ:</strong> <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{formatLitterDescription(selectedBatchForSale)}</span></div>
+                  <div style={{ marginTop: '0.25rem' }}><strong>Số heo hiện còn trong lứa:</strong> <span style={{ color: '#0284c7', fontWeight: 700 }}>{selectedBatchForSale.totalCount} con</span></div>
                   {selectedBatchForSale.soldQuantity ? (
                     <div style={{ color: '#16a34a', fontSize: '0.8rem', marginTop: '0.2rem' }}>
                       Đã bán trước đó: {selectedBatchForSale.soldQuantity} con cho {selectedBatchForSale.salesHistory?.length || 1} mối
@@ -513,12 +540,12 @@ export const PigletsPage: React.FC<PigletsPageProps> = ({
         <div className="modal-overlay">
           <div className="modal-card" style={{ maxWidth: '650px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Lịch Sử Xuất Bán - Lứa {selectedBatchHistory.batchCode}</h3>
+              <h3 className="modal-title">Lịch Sử Xuất Bán - {formatLitterLabel(selectedBatchHistory)} ({selectedBatchHistory.sowName || selectedBatchHistory.sowRfid})</h3>
               <button type="button" className="close-btn modal-close" onClick={() => setShowHistoryModal(false)} title="Đóng">✕</button>
             </div>
             <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '8px', fontSize: '0.85rem' }}>
-                <div><strong>Mã lứa:</strong> {selectedBatchHistory.batchCode} | <strong>Nái mẹ:</strong> {selectedBatchHistory.sowName || selectedBatchHistory.sowRfid}</div>
+                <div><strong>Lứa đẻ:</strong> <span style={{ color: 'var(--primary)', fontWeight: 700 }}>{formatLitterDescription(selectedBatchHistory)}</span></div>
                 <div><strong>Tổng số đã bán:</strong> <span style={{ color: '#16a34a', fontWeight: 700 }}>{selectedBatchHistory.soldQuantity || 0} con</span></div>
                 <div><strong>Tổng doanh thu lứa này:</strong> <span style={{ color: '#15803d', fontWeight: 700 }}>{formatVND(selectedBatchHistory.salePrice || 0)}</span></div>
                 <div><strong>Số heo còn lại hiện tại:</strong> {selectedBatchHistory.totalCount} con</div>

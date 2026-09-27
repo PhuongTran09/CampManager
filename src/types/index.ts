@@ -112,6 +112,7 @@ export interface PigletSaleRecord {
 export interface PigletBatch {
   id: string;
   batchCode: string;           // Mã lứa heo con (VD: LUA-2026-01)
+  parityNumber?: number;       // Lứa đẻ thứ mấy của nái mẹ (VD: 1, 2, 3...)
   sowRfid: string;             // Mẹ nái mã bao nhiêu
   sowName?: string;            // Tên nái mẹ
   birthDate: string;           // Ngày sinh
